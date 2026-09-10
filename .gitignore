@@ -1,0 +1,5 @@
+/local.nix
+/result
+/result-*
+*.log
+.direnv/
