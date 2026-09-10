@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import Quickshell.Services.SystemTray
 
 Row {
@@ -15,6 +16,7 @@ Row {
             id: button
             required property SystemTrayItem modelData
             implicitWidth: 30
+            foreground: tray.panel.foregroundAt(this)
             Accessible.name: modelData.tooltipTitle || modelData.title || modelData.id
             ToolTip.visible: hovered
             ToolTip.text: modelData.tooltipTitle || modelData.title || modelData.id
@@ -31,6 +33,7 @@ Row {
             }
             contentItem: Item {
                 Image {
+                    id: trayIcon
                     anchors.centerIn: parent
                     width: 18
                     height: 18
@@ -38,7 +41,13 @@ Row {
                     fillMode: Image.PreserveAspectFit
                     sourceSize.width: 18
                     sourceSize.height: 18
-                    visible: status === Image.Ready
+                    visible: false
+                }
+                MultiEffect {
+                    anchors.fill: trayIcon
+                    source: trayIcon
+                    // Clamp RGB to black/white while preserving the icon alpha.
+                    brightness: button.foreground.r > 0.5 ? 1 : -1
                 }
             }
             MouseArea {

@@ -5,6 +5,7 @@ import ".."
 Button {
     id: control
     property bool selected: false
+    property color foreground: Theme.lightForeground
     implicitHeight: 28
     implicitWidth: Math.max(30, contentItem.implicitWidth + 18)
     hoverEnabled: true
@@ -14,14 +15,14 @@ Button {
         font.family: Theme.mono
         font.pixelSize: 12
         font.bold: control.selected
-        color: control.selected ? Theme.background : Theme.foreground
+        color: control.foreground
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
     background: Rectangle {
         radius: 6
-        color: control.selected ? Theme.accent : control.hovered ? Theme.surface : "transparent"
+        color: Qt.alpha(control.foreground, control.selected ? 0.22 : control.hovered ? 0.12 : 0)
         border.width: control.visualFocus ? 1 : 0
-        border.color: Theme.accent
+        border.color: control.foreground
     }
 }

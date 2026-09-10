@@ -11,17 +11,15 @@ PanelWindow {
     id: bar
     anchors { top: true; left: true; right: true }
     implicitHeight: 42
-    color: Theme.background
+    color: "transparent"
     readonly property var sink: Pipewire.defaultAudioSink
     readonly property var battery: UPower.displayDevice
     PwObjectTracker { objects: bar.sink ? [bar.sink] : [] }
     SystemClock { id: clock; precision: SystemClock.Minutes }
 
-    Rectangle {
-        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-        height: 1
-        color: Theme.surface
-    }
+    BackgroundContrast { id: contrast; panel: bar }
+    function foregroundAt(item) { return contrast.foregroundAt(item); }
+
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: 12
@@ -29,6 +27,7 @@ PanelWindow {
         spacing: 12
 
         BarButton {
+            foreground: bar.foregroundAt(this)
             text: "N /"
             Accessible.name: "Open launcher"
             onClicked: Quickshell.execDetached(["vicinae", "toggle"])
@@ -40,6 +39,7 @@ PanelWindow {
             Repeater {
                 model: 10
                 BarButton {
+                    foreground: bar.foregroundAt(this)
                     required property int index
                     readonly property int workspaceId: index + 1
                     text: workspaceId === 10 ? "0" : workspaceId.toString()
@@ -54,7 +54,7 @@ PanelWindow {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             text: Hyprland.activeToplevel?.title || "Desktop"
-            color: Theme.muted
+            color: bar.foregroundAt(this)
             font.family: Theme.font
             font.pixelSize: 12
             elide: Text.ElideRight
@@ -63,6 +63,7 @@ PanelWindow {
         Tray { panel: bar }
         BarButton {
             id: volume
+            foreground: bar.foregroundAt(this)
             text: !bar.sink?.audio ? "Audio —" : bar.sink.audio.muted
                 ? "Muted" : "Vol " + Math.round(bar.sink.audio.volume * 100) + "%"
             enabled: !!bar.sink?.audio
@@ -81,21 +82,22 @@ PanelWindow {
         }
         Text {
             visible: bar.battery.ready && bar.battery.isPresent
-            text: (UPower.onBattery ? "Bat " : "AC ") + Math.round(bar.battery.percentage * 100) + "%"
-            color: UPower.onBattery && bar.battery.percentage < 0.2 ? Theme.warning : Theme.muted
+            text: (UPower.onBattery ? (bar.battery.percentage < 0.2 ? "! Bat " : "Bat ") : "AC ") + Math.round(bar.battery.percentage * 100) + "%"
+            color: bar.foregroundAt(this)
+            font.bold: UPower.onBattery && bar.battery.percentage < 0.2
             font.family: Theme.mono
             font.pixelSize: 12
         }
         Text {
             visible: bar.width > 900
             text: Qt.formatDateTime(clock.date, "ddd, dd MMM")
-            color: Theme.muted
+            color: bar.foregroundAt(this)
             font.family: Theme.font
             font.pixelSize: 12
         }
         Text {
             text: Qt.formatDateTime(clock.date, "HH:mm")
-            color: Theme.foreground
+            color: bar.foregroundAt(this)
             font.family: Theme.mono
             font.pixelSize: 14
             font.bold: true
