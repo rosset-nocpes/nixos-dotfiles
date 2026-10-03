@@ -3,7 +3,10 @@
 set -euo pipefail
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-nix=(nix --extra-experimental-features 'nix-command flakes')
+# Enable flakes for this script and the nix commands Home Manager runs, without
+# touching the system's nix.conf.
+export NIX_CONFIG="${NIX_CONFIG:+$NIX_CONFIG
+}extra-experimental-features = nix-command flakes"
 
 case ${1:---build} in
   --build) switch=false ;;
@@ -25,7 +28,7 @@ fi
 
 # Machine identity, kept out of Git. Edit it if the detected values are wrong.
 if [[ ! -f $repo/local.nix ]]; then
-  system=$("${nix[@]}" eval --impure --raw --expr builtins.currentSystem)
+  system=$(nix eval --impure --raw --expr builtins.currentSystem)
   cat >"$repo/local.nix" <<EOF
 {
   username = "$(id -un)";
@@ -39,8 +42,8 @@ fi
 # path: (not git+file:) so the ignored local.nix is part of the flake.
 flake="path:$repo"
 if $switch; then
-  "${nix[@]}" run "$flake#home-manager" -- switch --flake "$flake#default" -b hm-backup
+  nix run "$flake#home-manager" -- switch --flake "$flake#default" -b hm-backup
 else
-  "${nix[@]}" build "$flake#homeConfigurations.default.activationPackage" --no-link
+  nix build "$flake#homeConfigurations.default.activationPackage" --no-link
   echo 'Build succeeded. Run scripts/install.sh --switch to activate it.'
 fi
