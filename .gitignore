@@ -1,6 +1,3 @@
 /local.nix
 /result
 /result-*
-*.log
-.direnv/
-__pycache__/

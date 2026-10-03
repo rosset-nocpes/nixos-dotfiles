@@ -1,4 +1,4 @@
-# Reusable Home Manager entry point; identity belongs in local.nix.
+# Home Manager entry point. Identity (username, home directory) comes from the flake or your own config.
 { lib, ... }: {
   imports = [
     ./modules/home/hyprland.nix

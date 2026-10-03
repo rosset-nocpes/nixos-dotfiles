@@ -1,26 +1,46 @@
 #!/usr/bin/env bash
+# Build (default) or build and activate the Home Manager configuration for the current user.
 set -euo pipefail
+
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-mode=${1:---build}
-case "$mode" in
-  --build|--switch) ;;
-  --help) printf 'Usage: scripts/install.sh [--build|--switch]\nBuild first (default), or build and activate Home Manager.\n'; exit 0 ;;
-  *) printf 'Unknown option: %s\n' "$mode" >&2; exit 2 ;;
+nix=(nix --extra-experimental-features 'nix-command flakes')
+
+case ${1:---build} in
+  --build) switch=false ;;
+  --switch) switch=true ;;
+  -h|--help)
+    printf 'Usage: scripts/install.sh [--build|--switch]\n'
+    printf '  --build   build the configuration without changing anything (default)\n'
+    printf '  --switch  build and activate it; conflicting files are renamed to *.hm-backup\n'
+    exit 0 ;;
+  *) printf 'Unknown option: %s (see --help)\n' "$1" >&2; exit 2 ;;
 esac
-if [[ "$mode" == --switch && -f /run/.toolboxenv ]]; then
-  echo 'Activate on the target desktop, outside Toolbox. Use --build for container validation.' >&2
-  exit 1
+
+die() { printf '%s\n' "$*" >&2; exit 1; }
+command -v nix >/dev/null || die 'Nix is required: https://nixos.org/download'
+[[ $(id -u) -ne 0 ]] || die 'Run as the user whose home should be configured, not root.'
+if $switch && [[ -f /run/.toolboxenv || -f /run/.containerenv ]]; then
+  die 'Activate on the target desktop, not inside a container. Use --build here.'
 fi
-command -v nix >/dev/null || { echo 'Install Nix first; see README.md.' >&2; exit 1; }
-if [[ ! -f "$repo/local.nix" ]]; then
-  echo 'Copy examples/local.nix to local.nix and set your username, home directory, and system.' >&2
-  exit 1
+
+# Machine identity, kept out of Git. Edit it if the detected values are wrong.
+if [[ ! -f $repo/local.nix ]]; then
+  system=$("${nix[@]}" eval --impure --raw --expr builtins.currentSystem)
+  cat >"$repo/local.nix" <<EOF
+{
+  username = "$(id -un)";
+  homeDirectory = "$HOME";
+  system = "$system";
+}
+EOF
+  printf 'Created local.nix for %s (%s).\n' "$(id -un)" "$system"
 fi
-# path: includes the gitignored local.nix and newly created files.
-nix --extra-experimental-features 'nix-command flakes' build \
-  "path:$repo#homeConfigurations.default.activationPackage" --out-link "$repo/result"
-if [[ "$mode" == --switch ]]; then
-  "$repo/result/activate"
+
+# path: (not git+file:) so the ignored local.nix is part of the flake.
+flake="path:$repo"
+if $switch; then
+  "${nix[@]}" run "$flake#home-manager" -- switch --flake "$flake#default" -b hm-backup
 else
-  echo 'Build ready. Run scripts/install.sh --switch to activate on the target desktop.'
+  "${nix[@]}" build "$flake#homeConfigurations.default.activationPackage" --no-link
+  echo 'Build succeeded. Run scripts/install.sh --switch to activate it.'
 fi

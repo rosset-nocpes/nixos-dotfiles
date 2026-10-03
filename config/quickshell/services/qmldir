@@ -1,0 +1,7 @@
+singleton Audio 1.0 Audio.qml
+singleton Battery 1.0 Battery.qml
+singleton Brightness 1.0 Brightness.qml
+singleton Bt 1.0 Bt.qml
+singleton Net 1.0 Net.qml
+singleton NightLight 1.0 NightLight.qml
+singleton Notifs 1.0 Notifs.qml
